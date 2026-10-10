@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Auth: Clerk provider, sign-in/sign-up pages, `proxy.ts` route protection, `/` redirects, navbar `UserButton` (`context/feature-specs/03-auth.md`).
+- Project dialogs: `/editor` home screen, Create/Rename/Delete project dialogs and sidebar project actions on mock data (`context/feature-specs/04-projects-dialogs.md`).
 
 ## Completed
 
@@ -20,7 +20,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## In Progress
 
-- None.
+- 04 Project dialogs (`context/feature-specs/04-projects-dialogs.md`) — implemented, not yet clicked through in a browser. `hooks/use-project-dialogs.ts` (dialog, form and loading state; in-memory create/rename/delete over `lib/mock-projects.ts`); `lib/slug.ts` (`slugify`); `components/editor/project-dialogs-provider.tsx` (context + `useProjectDialogsContext`, mounted in `app/editor/layout.tsx`); `components/editor/project-dialogs.tsx` (Create with live slug preview, Rename with prefilled auto-focused input and Enter submit, Delete as destructive confirmation); `components/editor/editor-home.tsx` rendered by `app/editor/page.tsx`; `project-sidebar.tsx` lists mock projects, rename/delete icon buttons on owned projects only, "New Project" opens the Create dialog, mobile-only scrim (`md:hidden`) closes the sidebar on tap. Verified: `tsc --noEmit`, `eslint` and `next build` pass; `slugify` checked on sample names. Remaining: manual browser check of the dialogs and the mobile scrim.
 
 ## Next Up
 
@@ -28,7 +28,9 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Open Questions
 
-- What does "New Project" do? Button currently has no action.
+- Does renaming a project change its slug? Currently rename keeps the slug created at creation time.
+- Must slugs be unique? No uniqueness check exists yet.
+- What happens when a sidebar project is clicked? Items are not links yet — no project route is defined.
 
 ## Architecture Decisions
 
@@ -36,6 +38,8 @@ Update this file whenever the current phase, active feature, or implementation s
 - `<html>` carries the `dark` class permanently so shadcn's `dark:` variants always apply (dark-only app).
 - Editor chrome is controlled: `app/editor/layout.tsx` owns sidebar open state and passes `isSidebarOpen`/`onToggleSidebar` to the navbar and `isOpen`/`onClose` to the sidebar. The sidebar is `fixed` at `top-15` to sit under the `h-12` navbar; change both together.
 - Dialogs: future dialogs compose `components/ui/dialog.tsx` directly (`DialogContent` > `DialogHeader` > `DialogTitle`/`DialogDescription`, `DialogFooter` for actions); colors come from the globals.css tokens.
+- Project dialogs: all dialog/form/loading state lives in `useProjectDialogs`; `ProjectDialogsProvider` calls it once in the editor layout, renders the three dialogs, and exposes the state through context so the sidebar and the `/editor` page open the same dialogs. Mutations go through the hook's `runMutation`, which is where API calls get awaited later. Dialogs pass `rounded-3xl` via `className` instead of editing `components/ui/dialog.tsx`.
+- Project ownership in the UI comes from `Project.role` (`"owner"` | `"collaborator"`): owner → My Projects tab with actions, collaborator → Shared tab without actions.
 - Auth: `proxy.ts` does not protect Server Action requests (`POST` + `next-action` header). Redirecting them broke Clerk's sign-out (see `context/context-issues.md`). **Every Server Function must call `await auth.protect()` itself.** `ClerkProvider` sets `afterSignOutUrl` to the sign-in URL and sign-in/sign-up fallback redirects to `/editor`.
 - Auth: route protection is default-deny in `proxy.ts` using a plain path check against the Clerk sign-in/up env vars — not `createRouteMatcher`, which is deprecated in `@clerk/nextjs` 7. New public routes must be added to the `publicRoutes` list there. Per Clerk guidance, pages/handlers that touch protected data should still call `await auth.protect()` themselves.
 - Clerk appearance: `colorBorder` and `colorNeutral` use `var(--text-primary)` because Clerk renders them at ~7–11% alpha; a dark token (e.g. `--border-default`) makes Clerk borders invisible.
