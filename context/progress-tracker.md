@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Project dialogs: `/editor` home screen, Create/Rename/Delete project dialogs and sidebar project actions on mock data (`context/feature-specs/04-projects-dialogs.md`).
+- Prisma: project data models, Prisma Client singleton and first migration (`context/feature-specs/05-prisma.md`).
 
 ## Completed
 
@@ -21,6 +21,8 @@ Update this file whenever the current phase, active feature, or implementation s
 ## In Progress
 
 - 04 Project dialogs (`context/feature-specs/04-projects-dialogs.md`) — implemented, not yet clicked through in a browser. `hooks/use-project-dialogs.ts` (dialog, form and loading state; in-memory create/rename/delete over `lib/mock-projects.ts`); `lib/slug.ts` (`slugify`); `components/editor/project-dialogs-provider.tsx` (context + `useProjectDialogsContext`, mounted in `app/editor/layout.tsx`); `components/editor/project-dialogs.tsx` (Create with live slug preview, Rename with prefilled auto-focused input and Enter submit, Delete as destructive confirmation); `components/editor/editor-home.tsx` rendered by `app/editor/page.tsx`; `project-sidebar.tsx` lists mock projects, rename/delete icon buttons on owned projects only, "New Project" opens the Create dialog, mobile-only scrim (`md:hidden`) closes the sidebar on tap. Verified: `tsc --noEmit`, `eslint` and `next build` pass; `slugify` checked on sample names. Remaining: manual browser check of the dialogs and the mobile scrim.
+
+- 05 Prisma (`context/feature-specs/05-prisma.md`) — **blocked on the migration: no database is reachable at `localhost:5432`** (the active `DATABASE_URL`; no Postgres service or container found on the machine). Done: `prisma/models/project.prisma` (`ProjectStatus` enum, `Project`, `ProjectCollaborator` with cascade delete, unique `projectId`/`email`, indexes on `ownerId`, `createdAt`, `email`, `projectId`/`createdAt`); `lib/prisma.ts` (single cached `prisma` export; `prisma+postgres://` → `accelerateUrl`, otherwise `@prisma/adapter-pg`; cached on `global` outside production); client generated to `app/genrated/prisma`; `prisma/migrations/20261012064434_init/migration.sql` written offline with `prisma migrate diff --from-empty` — **not applied to any database**. Verified: `prisma validate`, `tsc --noEmit`, `eslint`, `npm run build` pass. Remaining: start the database, then run `npx prisma migrate dev` (applies the existing init migration) and `npx prisma generate`.
 
 ## Next Up
 
@@ -40,6 +42,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - Dialogs: future dialogs compose `components/ui/dialog.tsx` directly (`DialogContent` > `DialogHeader` > `DialogTitle`/`DialogDescription`, `DialogFooter` for actions); colors come from the globals.css tokens.
 - Project dialogs: all dialog/form/loading state lives in `useProjectDialogs`; `ProjectDialogsProvider` calls it once in the editor layout, renders the three dialogs, and exposes the state through context so the sidebar and the `/editor` page open the same dialogs. Mutations go through the hook's `runMutation`, which is where API calls get awaited later. Dialogs pass `rounded-3xl` via `className` instead of editing `components/ui/dialog.tsx`.
 - Project ownership in the UI comes from `Project.role` (`"owner"` | `"collaborator"`): owner → My Projects tab with actions, collaborator → Shared tab without actions.
+- Prisma 7: CLI config is `prisma7.config.ts` (auto-detected; loads `.env` via `dotenv`, not `.env.local`), schema is the multi-file `prisma/` folder (`schema.prisma` holds generator + datasource, models live in `prisma/models/*.prisma`), client output is `app/genrated/prisma` (gitignored — run `npx prisma generate` after install; import from `@/app/genrated/prisma/client`). App code imports the client only via `lib/prisma.ts`. The Accelerate branch uses the built-in `accelerateUrl` option, so `@prisma/extension-accelerate` is not installed.
 - Auth: `proxy.ts` does not protect Server Action requests (`POST` + `next-action` header). Redirecting them broke Clerk's sign-out (see `context/context-issues.md`). **Every Server Function must call `await auth.protect()` itself.** `ClerkProvider` sets `afterSignOutUrl` to the sign-in URL and sign-in/sign-up fallback redirects to `/editor`.
 - Auth: route protection is default-deny in `proxy.ts` using a plain path check against the Clerk sign-in/up env vars — not `createRouteMatcher`, which is deprecated in `@clerk/nextjs` 7. New public routes must be added to the `publicRoutes` list there. Per Clerk guidance, pages/handlers that touch protected data should still call `await auth.protect()` themselves.
 - Clerk appearance: `colorBorder` and `colorNeutral` use `var(--text-primary)` because Clerk renders them at ~7–11% alpha; a dark token (e.g. `--border-default`) makes Clerk borders invisible.
