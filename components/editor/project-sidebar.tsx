@@ -1,27 +1,31 @@
 "use client";
 
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { FolderOpen, Pencil, Plus, Trash2, Users, X } from "lucide-react";
 
 import { useProjectDialogsContext } from "@/components/editor/project-dialogs-provider";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Project } from "@/lib/mock-projects";
+import type { ProjectListItem } from "@/lib/projects";
 import { cn } from "@/lib/utils";
+import { getWorkspacePath } from "@/lib/workspace";
 
 interface ProjectSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  ownedProjects: ProjectListItem[];
+  sharedProjects: ProjectListItem[];
 }
 
-export function ProjectSidebar({ isOpen, onClose }: ProjectSidebarProps) {
-  const { projects, openCreateDialog, openRenameDialog, openDeleteDialog } =
+export function ProjectSidebar({
+  isOpen,
+  onClose,
+  ownedProjects,
+  sharedProjects,
+}: ProjectSidebarProps) {
+  const { openCreateDialog, openRenameDialog, openDeleteDialog } =
     useProjectDialogsContext();
-
-  const ownedProjects = projects.filter((project) => project.role === "owner");
-  const sharedProjects = projects.filter(
-    (project) => project.role === "collaborator"
-  );
 
   return (
     <>
@@ -102,10 +106,10 @@ export function ProjectSidebar({ isOpen, onClose }: ProjectSidebarProps) {
 }
 
 interface ProjectListProps {
-  projects: Project[];
+  projects: ProjectListItem[];
   // Actions are passed for owned projects only; shared projects render without them.
-  onRename?: (project: Project) => void;
-  onDelete?: (project: Project) => void;
+  onRename?: (project: ProjectListItem) => void;
+  onDelete?: (project: ProjectListItem) => void;
 }
 
 function ProjectList({ projects, onRename, onDelete }: ProjectListProps) {
@@ -116,10 +120,13 @@ function ProjectList({ projects, onRename, onDelete }: ProjectListProps) {
           key={project.id}
           className="group flex h-9 shrink-0 items-center gap-1 rounded-xl pr-1 pl-3 hover:bg-subtle"
         >
-          <span className="min-w-0 flex-1 truncate text-sm text-copy-secondary">
+          <Link
+            href={getWorkspacePath(project.id)}
+            className="min-w-0 flex-1 truncate text-sm text-copy-secondary"
+          >
             {project.name}
-          </span>
-          {project.role === "owner" && onRename && onDelete && (
+          </Link>
+          {onRename && onDelete && (
             <div className="flex items-center md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
               <Button
                 variant="ghost"

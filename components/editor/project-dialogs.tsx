@@ -12,10 +12,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import type { ProjectDialogsState } from "@/hooks/use-project-dialogs";
+import type { ProjectActionsState } from "@/hooks/use-project-actions";
 
 interface ProjectDialogsProps {
-  dialogs: ProjectDialogsState;
+  dialogs: ProjectActionsState;
 }
 
 const CONTENT_CLASS = "rounded-3xl";
@@ -32,7 +32,8 @@ export function ProjectDialogs({ dialogs }: ProjectDialogsProps) {
 }
 
 function CreateProjectDialog({ dialogs }: ProjectDialogsProps) {
-  const { name, slug, isLoading, setName, closeDialog, submitCreate } = dialogs;
+  const { name, roomId, isLoading, error, setName, closeDialog, submitCreate } =
+    dialogs;
 
   return (
     <Dialog
@@ -71,11 +72,12 @@ function CreateProjectDialog({ dialogs }: ProjectDialogsProps) {
               disabled={isLoading}
             />
             <p className="text-xs text-copy-muted" aria-live="polite">
-              Slug:{" "}
+              Room ID:{" "}
               <span className="font-mono text-copy-secondary">
-                {slug || "—"}
+                {roomId || "—"}
               </span>
             </p>
+            <DialogError error={error} />
           </div>
           <DialogFooter className={FOOTER_CLASS}>
             <Button
@@ -86,7 +88,7 @@ function CreateProjectDialog({ dialogs }: ProjectDialogsProps) {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!slug || isLoading}>
+            <Button type="submit" disabled={!roomId || isLoading}>
               {isLoading ? "Creating…" : "Create project"}
             </Button>
           </DialogFooter>
@@ -97,8 +99,15 @@ function CreateProjectDialog({ dialogs }: ProjectDialogsProps) {
 }
 
 function RenameProjectDialog({ dialogs }: ProjectDialogsProps) {
-  const { name, targetProject, isLoading, setName, closeDialog, submitRename } =
-    dialogs;
+  const {
+    name,
+    targetProject,
+    isLoading,
+    error,
+    setName,
+    closeDialog,
+    submitRename,
+  } = dialogs;
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -141,6 +150,7 @@ function RenameProjectDialog({ dialogs }: ProjectDialogsProps) {
               autoComplete="off"
               disabled={isLoading}
             />
+            <DialogError error={error} />
           </div>
           <DialogFooter className={FOOTER_CLASS}>
             <Button
@@ -162,7 +172,8 @@ function RenameProjectDialog({ dialogs }: ProjectDialogsProps) {
 }
 
 function DeleteProjectDialog({ dialogs }: ProjectDialogsProps) {
-  const { targetProject, isLoading, closeDialog, submitDelete } = dialogs;
+  const { targetProject, isLoading, error, closeDialog, submitDelete } =
+    dialogs;
 
   return (
     <Dialog
@@ -182,6 +193,7 @@ function DeleteProjectDialog({ dialogs }: ProjectDialogsProps) {
             ? This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
+        <DialogError error={error} />
         <DialogFooter className={FOOTER_CLASS}>
           <Button
             type="button"
@@ -202,5 +214,15 @@ function DeleteProjectDialog({ dialogs }: ProjectDialogsProps) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DialogError({ error }: { error: string | null }) {
+  if (!error) return null;
+
+  return (
+    <p role="alert" className="text-xs text-error">
+      {error}
+    </p>
   );
 }

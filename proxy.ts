@@ -12,6 +12,10 @@ function isPublicRoute(pathname: string) {
   );
 }
 
+function isApiRoute(pathname: string) {
+  return pathname === "/api" || pathname.startsWith("/api/");
+}
+
 // Server Actions are POSTs addressed by action ID, not by page. Path-based protection here would
 // redirect them to sign-in (e.g. Clerk's sign-out cache action once the session token has expired),
 // which breaks the client router. Every Server Function must call `await auth.protect()` itself.
@@ -21,6 +25,15 @@ function isServerAction(req: Request) {
 
 export default clerkMiddleware(async (auth, req) => {
   if (isPublicRoute(req.nextUrl.pathname) || isServerAction(req)) return;
+
+  // API clients get a 401 instead of the sign-in redirect / 404 that `auth.protect()` produces.
+  if (isApiRoute(req.nextUrl.pathname)) {
+    const { userId } = await auth();
+    if (!userId) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return;
+  }
 
   await auth.protect();
 });
