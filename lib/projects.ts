@@ -1,6 +1,5 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
-
 import { prisma } from "@/lib/prisma";
+import type { ClerkIdentity } from "@/lib/project-access";
 
 export interface ProjectListItem {
   id: string;
@@ -12,41 +11,23 @@ export interface SidebarProjects {
   sharedProjects: ProjectListItem[];
 }
 
-interface Viewer {
-  userId: string;
-  // Verified addresses only; collaborators are matched by email.
-  emails: string[];
-}
-
 const listSelect = { id: true, name: true } as const;
-
-// Signed-in user for server components; redirects to sign-in when there is no session.
-export async function getViewer(): Promise<Viewer> {
-  const { userId } = await auth.protect();
-  const user = await currentUser();
-  const emails =
-    user?.emailAddresses
-      .filter((address) => address.verification?.status === "verified")
-      .map((address) => address.emailAddress) ?? [];
-
-  return { userId, emails };
-}
 
 export async function getSidebarProjects({
   userId,
-  emails,
-}: Viewer): Promise<SidebarProjects> {
+  primaryEmail,
+}: ClerkIdentity): Promise<SidebarProjects> {
   const [ownedProjects, sharedProjects] = await Promise.all([
     prisma.project.findMany({
       where: { ownerId: userId },
       orderBy: { createdAt: "desc" },
       select: listSelect,
     }),
-    emails.length > 0
+    primaryEmail
       ? prisma.project.findMany({
           where: {
             ownerId: { not: userId },
-            collaborators: { some: { email: { in: emails } } },
+            collaborators: { some: { email: primaryEmail } },
           },
           orderBy: { createdAt: "desc" },
           select: listSelect,
@@ -55,21 +36,4 @@ export async function getSidebarProjects({
   ]);
 
   return { ownedProjects, sharedProjects };
-}
-
-// Resolves to `null` unless the viewer owns the project or is one of its collaborators.
-export async function getAccessibleProject(
-  projectId: string,
-  { userId, emails }: Viewer
-): Promise<ProjectListItem | null> {
-  return prisma.project.findFirst({
-    where: {
-      id: projectId,
-      OR: [
-        { ownerId: userId },
-        { collaborators: { some: { email: { in: emails } } } },
-      ],
-    },
-    select: listSelect,
-  });
 }

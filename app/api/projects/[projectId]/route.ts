@@ -2,26 +2,13 @@ import { auth } from "@clerk/nextjs/server";
 
 import { prisma } from "@/lib/prisma";
 import {
+  checkOwnership,
   errorResponse,
-  forbidden,
-  notFound,
   parseProjectName,
   projectSelect,
   readJsonObject,
   unauthorized,
 } from "@/lib/project-api";
-
-// Resolves to an error response unless the project exists and is owned by the user.
-async function checkOwnership(projectId: string, userId: string) {
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { ownerId: true },
-  });
-
-  if (!project) return notFound();
-  if (project.ownerId !== userId) return forbidden();
-  return null;
-}
 
 export async function PATCH(
   request: Request,

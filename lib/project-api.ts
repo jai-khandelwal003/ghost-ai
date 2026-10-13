@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/prisma";
 import { isValidRoomId } from "@/lib/workspace";
 
 export const DEFAULT_PROJECT_NAME = "Untitled Project";
@@ -13,6 +14,18 @@ export function errorResponse(status: number, error: string) {
 export const unauthorized = () => errorResponse(401, "Unauthorized");
 export const forbidden = () => errorResponse(403, "Forbidden");
 export const notFound = () => errorResponse(404, "Project not found");
+
+// Resolves to an error response unless the project exists and is owned by the user.
+export async function checkOwnership(projectId: string, userId: string) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { ownerId: true },
+  });
+
+  if (!project) return notFound();
+  if (project.ownerId !== userId) return forbidden();
+  return null;
+}
 
 // Fields returned to clients for every project endpoint.
 export const projectSelect = {
