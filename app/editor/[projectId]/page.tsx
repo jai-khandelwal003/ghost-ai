@@ -1,5 +1,5 @@
+import { CanvasRoom } from "@/components/canvas/canvas-room";
 import { AccessDenied } from "@/components/editor/access-denied";
-import { CanvasPlaceholder } from "@/components/editor/canvas-placeholder";
 import { EditorShell } from "@/components/editor/editor-shell";
 import { getAccessibleProject, requireIdentity } from "@/lib/project-access";
 import { getSidebarProjects } from "@/lib/projects";
@@ -17,7 +17,7 @@ export default async function WorkspacePage({
 
   return (
     <EditorShell {...projects} project={project}>
-      <CanvasPlaceholder />
+      <CanvasRoom roomId={project.id} />
     </EditorShell>
   );
 }

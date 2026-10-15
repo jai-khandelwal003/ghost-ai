@@ -47,14 +47,17 @@ export function ProjectSidebar({
           isOpen ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       />
-      {/* Fixed panel below the h-12 navbar; `EditorShell` pads the content beside it on large screens. */}
+      {/* Fixed panel below the h-12 navbar, floating over the canvas. When closed it slides past
+          its left offset plus shadow, then turns invisible so nothing can peek in. */}
       <aside
         aria-label="Projects"
         aria-hidden={!isOpen}
         inert={!isOpen}
         className={cn(
-          "fixed top-15 bottom-3 left-3 z-40 flex w-72 flex-col rounded-2xl border border-surface-border bg-surface/90 backdrop-blur-md transition-transform duration-200 ease-out",
-          isOpen ? "translate-x-0" : "-translate-x-[calc(100%+1rem)]",
+          "fixed top-15 bottom-3 left-3 z-40 flex w-72 flex-col rounded-2xl border border-surface-border bg-surface/90 shadow-2xl shadow-black/50 backdrop-blur-md transition-[translate,visibility] duration-200 ease-out",
+          isOpen
+            ? "visible translate-x-0"
+            : "invisible -translate-x-[calc(100%+3rem)]",
         )}
       >
         <div className="mb-3 flex items-center justify-between border-b border-surface-border px-4 py-3">

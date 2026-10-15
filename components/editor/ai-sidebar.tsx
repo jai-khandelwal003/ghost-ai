@@ -16,8 +16,10 @@ export function AiSidebar({ isOpen }: AiSidebarProps) {
       aria-hidden={!isOpen}
       inert={!isOpen}
       className={cn(
-        "fixed top-15 right-3 bottom-3 z-40 flex w-80 max-w-[calc(100vw-1.5rem)] flex-col rounded-2xl border border-surface-border bg-surface/90 backdrop-blur-md transition-transform duration-200 ease-out",
-        isOpen ? "translate-x-0" : "translate-x-[calc(100%+1rem)]"
+        "fixed top-15 right-3 bottom-3 z-40 flex w-80 max-w-[calc(100vw-1.5rem)] flex-col rounded-2xl border border-surface-border bg-surface/90 shadow-2xl shadow-black/50 backdrop-blur-md transition-[translate,visibility] duration-200 ease-out",
+        isOpen
+          ? "visible translate-x-0"
+          : "invisible translate-x-[calc(100%+3rem)]"
       )}
     >
       <div className="flex items-center justify-between border-b border-surface-border px-4 py-3">

@@ -9,7 +9,6 @@ import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { ShareDialog } from "@/components/editor/share-dialog";
 import { Button } from "@/components/ui/button";
 import type { ProjectListItem, SidebarProjects } from "@/lib/projects";
-import { cn } from "@/lib/utils";
 
 interface EditorShellProps extends SidebarProjects {
   // Set on a project workspace; adds the project name, navbar actions and the AI sidebar.
@@ -27,7 +26,7 @@ export function EditorShell({
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen flex-col bg-base">
+    <div className="flex h-screen flex-col overflow-hidden bg-base">
       <EditorNavbar
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen((open) => !open)}
@@ -64,16 +63,8 @@ export function EditorShell({
         sharedProjects={sharedProjects}
         activeProjectId={project?.id}
       />
-      {/* On large screens the open sidebars sit beside the content instead of over it. */}
-      <main
-        className={cn(
-          "relative min-h-0 flex-1 p-3 transition-[padding] duration-200 ease-out",
-          isSidebarOpen && "lg:pl-78",
-          project && isAiSidebarOpen && "lg:pr-86",
-        )}
-      >
-        {children}
-      </main>
+      {/* The sidebars float over the content, so it always fills the area below the navbar. */}
+      <main className="relative min-h-0 flex-1 overflow-hidden">{children}</main>
       {project && <AiSidebar isOpen={isAiSidebarOpen} />}
     </div>
   );
