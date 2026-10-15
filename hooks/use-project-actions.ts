@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
+import { FALLBACK_ERROR, readError } from "@/lib/api-error";
 import type { ProjectListItem } from "@/lib/projects";
 import {
   createRoomId,
@@ -27,20 +28,6 @@ export interface ProjectActionsState {
   submitCreate: () => Promise<void>;
   submitRename: () => Promise<void>;
   submitDelete: () => Promise<void>;
-}
-
-const FALLBACK_ERROR = "Something went wrong. Please try again.";
-
-async function readError(response: Response): Promise<string> {
-  try {
-    const body: unknown = await response.json();
-    if (typeof body === "object" && body !== null && "error" in body) {
-      return typeof body.error === "string" ? body.error : FALLBACK_ERROR;
-    }
-  } catch {
-    // Not a JSON error body; fall through to the generic message.
-  }
-  return FALLBACK_ERROR;
 }
 
 export function useProjectActions(): ProjectActionsState {

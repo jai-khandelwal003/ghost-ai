@@ -16,6 +16,8 @@ interface ProjectSidebarProps {
   onClose: () => void;
   ownedProjects: ProjectListItem[];
   sharedProjects: ProjectListItem[];
+  // The project whose workspace is open, if any.
+  activeProjectId?: string;
 }
 
 export function ProjectSidebar({
@@ -23,9 +25,16 @@ export function ProjectSidebar({
   onClose,
   ownedProjects,
   sharedProjects,
+  activeProjectId,
 }: ProjectSidebarProps) {
   const { openCreateDialog, openRenameDialog, openDeleteDialog } =
     useProjectDialogsContext();
+  // Open on the tab that holds the current project so its highlight is visible.
+  const defaultTab = sharedProjects.some(
+    (project) => project.id === activeProjectId,
+  )
+    ? "shared"
+    : "my-projects";
 
   return (
     <>
@@ -35,20 +44,23 @@ export function ProjectSidebar({
         onClick={onClose}
         className={cn(
           "fixed inset-x-0 top-12 bottom-0 z-30 bg-base/70 backdrop-blur-xs transition-opacity duration-200 ease-out md:hidden",
-          isOpen ? "opacity-100" : "pointer-events-none opacity-0"
+          isOpen ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       />
-      {/* Fixed overlay below the h-12 navbar, so opening it never pushes page content. */}
+      {/* Fixed panel below the h-12 navbar, floating over the canvas. When closed it slides past
+          its left offset plus shadow, then turns invisible so nothing can peek in. */}
       <aside
         aria-label="Projects"
         aria-hidden={!isOpen}
         inert={!isOpen}
         className={cn(
-          "fixed top-15 bottom-3 left-3 z-40 flex w-72 flex-col rounded-2xl border border-surface-border bg-surface/90 backdrop-blur-md transition-transform duration-200 ease-out",
-          isOpen ? "translate-x-0" : "-translate-x-[calc(100%+1rem)]"
+          "fixed top-15 bottom-3 left-3 z-40 flex w-72 flex-col rounded-2xl border border-surface-border bg-surface/90 shadow-2xl shadow-black/50 backdrop-blur-md transition-[translate,visibility] duration-200 ease-out",
+          isOpen
+            ? "visible translate-x-0"
+            : "invisible -translate-x-[calc(100%+3rem)]",
         )}
       >
-        <div className="flex items-center justify-between px-4 pt-4 pb-3">
+        <div className="mb-3 flex items-center justify-between border-b border-surface-border px-4 py-3">
           <h2 className="text-sm font-medium text-copy-primary">Projects</h2>
           <Button
             variant="ghost"
@@ -61,7 +73,7 @@ export function ProjectSidebar({
           </Button>
         </div>
 
-        <Tabs defaultValue="my-projects" className="min-h-0 flex-1 px-4">
+        <Tabs defaultValue={defaultTab} className="min-h-0 flex-1 px-4">
           <TabsList className="w-full">
             <TabsTrigger value="my-projects">My Projects</TabsTrigger>
             <TabsTrigger value="shared">Shared</TabsTrigger>
@@ -70,6 +82,7 @@ export function ProjectSidebar({
             {ownedProjects.length > 0 ? (
               <ProjectList
                 projects={ownedProjects}
+                activeProjectId={activeProjectId}
                 onRename={openRenameDialog}
                 onDelete={openDeleteDialog}
               />
@@ -83,7 +96,10 @@ export function ProjectSidebar({
           </TabsContent>
           <TabsContent value="shared" className="flex min-h-0">
             {sharedProjects.length > 0 ? (
-              <ProjectList projects={sharedProjects} />
+              <ProjectList
+                projects={sharedProjects}
+                activeProjectId={activeProjectId}
+              />
             ) : (
               <EmptyState
                 icon={Users}
@@ -94,7 +110,7 @@ export function ProjectSidebar({
           </TabsContent>
         </Tabs>
 
-        <div className="p-4">
+        <div className="border-t border-surface-border p-4">
           <Button className="w-full" onClick={openCreateDialog}>
             <Plus className="h-4 w-4" />
             New Project
@@ -107,49 +123,72 @@ export function ProjectSidebar({
 
 interface ProjectListProps {
   projects: ProjectListItem[];
+  activeProjectId?: string;
   // Actions are passed for owned projects only; shared projects render without them.
   onRename?: (project: ProjectListItem) => void;
   onDelete?: (project: ProjectListItem) => void;
 }
 
-function ProjectList({ projects, onRename, onDelete }: ProjectListProps) {
+function ProjectList({
+  projects,
+  activeProjectId,
+  onRename,
+  onDelete,
+}: ProjectListProps) {
   return (
     <ul className="flex flex-1 flex-col gap-1 overflow-y-auto">
-      {projects.map((project) => (
-        <li
-          key={project.id}
-          className="group flex h-9 shrink-0 items-center gap-1 rounded-xl pr-1 pl-3 hover:bg-subtle"
-        >
-          <Link
-            href={getWorkspacePath(project.id)}
-            className="min-w-0 flex-1 truncate text-sm text-copy-secondary"
+      {projects.map((project) => {
+        const isActive = project.id === activeProjectId;
+
+        return (
+          <li
+            key={project.id}
+            className={cn(
+              "group flex h-10 shrink-0 items-center gap-2 rounded-xl border border-transparent pr-1 pl-3 hover:bg-subtle",
+              isActive && "border-brand/30 bg-accent-dim hover:bg-accent-dim",
+            )}
           >
-            {project.name}
-          </Link>
-          {onRename && onDelete && (
-            <div className="flex items-center md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-copy-muted hover:text-copy-primary"
-                onClick={() => onRename(project)}
-                aria-label={`Rename ${project.name}`}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-copy-muted hover:text-error"
-                onClick={() => onDelete(project)}
-                aria-label={`Delete ${project.name}`}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-        </li>
-      ))}
+            {isActive && (
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand"
+              />
+            )}
+            <Link
+              href={getWorkspacePath(project.id)}
+              aria-current={isActive ? "page" : undefined}
+              className={cn(
+                "min-w-0 flex-1 truncate text-sm text-copy-secondary",
+                isActive && "font-medium text-copy-primary",
+              )}
+            >
+              {project.name}
+            </Link>
+            {onRename && onDelete && (
+              <div className="flex items-center md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-copy-muted hover:text-copy-primary"
+                  onClick={() => onRename(project)}
+                  aria-label={`Rename ${project.name}`}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-copy-muted hover:text-error"
+                  onClick={() => onDelete(project)}
+                  aria-label={`Delete ${project.name}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }

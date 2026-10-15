@@ -1,33 +1,23 @@
-import { notFound } from "next/navigation";
-
+import { CanvasRoom } from "@/components/canvas/canvas-room";
+import { AccessDenied } from "@/components/editor/access-denied";
 import { EditorShell } from "@/components/editor/editor-shell";
-import {
-  getAccessibleProject,
-  getSidebarProjects,
-  getViewer,
-} from "@/lib/projects";
+import { getAccessibleProject, requireIdentity } from "@/lib/project-access";
+import { getSidebarProjects } from "@/lib/projects";
 
 export default async function WorkspacePage({
   params,
 }: PageProps<"/editor/[projectId]">) {
   const { projectId } = await params;
-  const viewer = await getViewer();
+  const identity = await requireIdentity();
 
-  const [project, projects] = await Promise.all([
-    getAccessibleProject(projectId, viewer),
-    getSidebarProjects(viewer),
-  ]);
-  if (!project) notFound();
+  const project = await getAccessibleProject(projectId, identity);
+  if (!project) return <AccessDenied />;
 
-  // Placeholder until the canvas is built.
+  const projects = await getSidebarProjects(identity);
+
   return (
-    <EditorShell {...projects}>
-      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-base px-6 text-center">
-        <h1 className="text-lg font-medium text-copy-primary">
-          {project.name}
-        </h1>
-        <p className="font-mono text-xs text-copy-muted">{project.id}</p>
-      </div>
+    <EditorShell {...projects} project={project}>
+      <CanvasRoom roomId={project.id} />
     </EditorShell>
   );
 }
