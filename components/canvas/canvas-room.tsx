@@ -42,7 +42,7 @@ export function CanvasRoom({ roomId }: CanvasRoomProps) {
       <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
         <RoomProvider
           id={roomId}
-          initialPresence={{ cursor: null, isThinking: false }}
+          initialPresence={{ cursor: null, thinking: false }}
         >
           <CanvasConnection />
         </RoomProvider>

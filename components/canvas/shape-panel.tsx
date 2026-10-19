@@ -29,6 +29,10 @@ const SHAPE_BUTTONS: { shape: NodeShape; label: string; icon: LucideIcon }[] = [
   { shape: "hexagon", label: "Hexagon", icon: Hexagon },
 ];
 
+function clampFraction(value: number) {
+  return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0.5;
+}
+
 // Floating pill toolbar at the bottom center of the canvas. Shapes are added by dragging
 // a button onto the canvas (see the drop handling in `Canvas`).
 export function ShapePanel() {
@@ -37,10 +41,9 @@ export function ShapePanel() {
   const previewRefs = useRef<Partial<Record<NodeShape, HTMLDivElement>>>({});
 
   function handleDragStart(event: DragEvent<HTMLButtonElement>, shape: NodeShape) {
-    writeShapeDragPayload(event.dataTransfer, shape);
-
     // The browser snapshots the preview as the drag image, keeps it under the cursor and
-    // removes it on drop or cancel. The drop centers the node on the cursor, so does this.
+    // removes it on drop or cancel. It is held by its center, so the node lands centered on
+    // the cursor.
     const preview = previewRefs.current[shape];
     if (preview) {
       event.dataTransfer.setDragImage(
@@ -48,7 +51,17 @@ export function ShapePanel() {
         preview.offsetWidth / 2,
         preview.offsetHeight / 2,
       );
+      writeShapeDragPayload(event.dataTransfer, shape);
+      return;
     }
+
+    // No preview: the browser drags the button itself, held where the user grabbed it, so
+    // the node is placed by that same point.
+    const rect = event.currentTarget.getBoundingClientRect();
+    writeShapeDragPayload(event.dataTransfer, shape, {
+      grabX: clampFraction((event.clientX - rect.left) / rect.width),
+      grabY: clampFraction((event.clientY - rect.top) / rect.height),
+    });
   }
 
   return (

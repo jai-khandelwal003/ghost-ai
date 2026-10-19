@@ -45,3 +45,9 @@ export type CanvasEdgeData = {
 
 export type CanvasNode = Node<CanvasNodeData, typeof CANVAS_NODE_TYPE>;
 export type CanvasEdge = Edge<CanvasEdgeData, typeof CANVAS_EDGE_TYPE>;
+
+// The saved canvas: the JSON stored in Vercel Blob and sent to / from `/api/projects/[projectId]/canvas`.
+export type CanvasSnapshot = {
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+};

@@ -1,16 +1,33 @@
 "use client";
 
-import { useState, type DragEvent } from "react";
-import { useHistory, useRedo, useUndo } from "@liveblocks/react/suspense";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type DragEvent,
+  type MouseEvent,
+} from "react";
+import {
+  useHistory,
+  useRedo,
+  useRoom,
+  useUndo,
+  useUpdateMyPresence,
+} from "@liveblocks/react/suspense";
 import { useLiveblocksFlow } from "@liveblocks/react-flow";
 import {
   Background,
   BackgroundVariant,
   ConnectionMode,
+  getConnectedEdges,
   MarkerType,
   ReactFlow,
   ReactFlowProvider,
+  useEdges,
+  useNodes,
   useReactFlow,
+  useStoreApi,
   type DefaultEdgeOptions,
   type EdgeTypes,
   type NodeTypes,
@@ -20,17 +37,26 @@ import "@xyflow/react/dist/style.css";
 import { CanvasControls } from "@/components/canvas/canvas-controls";
 import { CanvasEdgeView } from "@/components/canvas/canvas-edge";
 import { CanvasNodeView } from "@/components/canvas/canvas-node";
+import { LiveCursors } from "@/components/canvas/live-cursors";
+import { PresenceAvatars } from "@/components/canvas/presence-avatars";
 import { ShapePanel } from "@/components/canvas/shape-panel";
 import {
   instantiateTemplate,
   type CanvasTemplate,
 } from "@/components/editor/starter-template";
+import {
+  useCanvasSaveReporter,
+  type CanvasSaveControl,
+} from "@/components/editor/canvas-save-context";
 import { useStarterTemplates } from "@/components/editor/starter-templates-context";
 import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
+import { useCanvasAutosave } from "@/hooks/use-canvas-autosave";
 import {
+  isEditableTarget,
   useKeyboardShortcuts,
   ZOOM_ANIMATION_MS,
 } from "@/hooks/use-keyboard-shortcuts";
+import { useSavedCanvas } from "@/hooks/use-saved-canvas";
 import {
   createCanvasNode,
   hasShapeDragPayload,
@@ -41,6 +67,7 @@ import {
   CANVAS_NODE_TYPE,
   type CanvasEdge,
   type CanvasNode,
+  type CanvasSnapshot,
 } from "@/types/canvas";
 
 // Module-level so the hook receives the same arrays on every render.
@@ -88,9 +115,14 @@ function CanvasFlow() {
     });
   const reactFlow = useReactFlow<CanvasNode, CanvasEdge>();
   const { screenToFlowPosition } = reactFlow;
+  const reactFlowStore = useStoreApi<CanvasNode, CanvasEdge>();
+  // React Flow's view of the same nodes and edges, including each one's local `selected` flag.
+  const flowNodes = useNodes<CanvasNode>();
+  const flowEdges = useEdges<CanvasEdge>();
   const undo = useUndo();
   const redo = useRedo();
   const history = useHistory();
+  const updateMyPresence = useUpdateMyPresence();
   useKeyboardShortcuts({ reactFlow, undo, redo });
   // Opened from the navbar's Templates button (`EditorShell`).
   const templates = useStarterTemplates();
@@ -98,6 +130,86 @@ function CanvasFlow() {
   // re-fits the viewport and the dropped shape jumps away from the cursor. Only fit a room
   // that already had nodes when it loaded.
   const [shouldFitView] = useState(() => nodes.length > 0);
+
+  // Project ID = room ID.
+  const projectId = useRoom().id;
+
+  // Restoring the saved canvas is not an undoable edit, so the history is cleared afterwards.
+  const loadSnapshot = useCallback(
+    (snapshot: CanvasSnapshot) => {
+      onNodesChange(snapshot.nodes.map((item) => ({ type: "add", item })));
+      onEdgesChange(snapshot.edges.map((item) => ({ type: "add", item })));
+      history.clear();
+      requestAnimationFrame(() => {
+        void reactFlow.fitView(FIT_VIEW_OPTIONS);
+      });
+    },
+    [onNodesChange, onEdgesChange, history, reactFlow]
+  );
+  const savedCanvas = useSavedCanvas({
+    projectId,
+    nodes,
+    edges,
+    onLoad: loadSnapshot,
+  });
+  const { status: autosaveStatus, save } = useCanvasAutosave({
+    projectId,
+    nodes,
+    edges,
+    enabled: savedCanvas.state === "ready",
+  });
+
+  // Reported to the navbar's Save button. If the saved canvas could not be loaded, autosave
+  // stays off (an empty room must not replace the stored snapshot) and the button retries the load.
+  const reportSave = useCanvasSaveReporter();
+  const saveControl = useMemo<CanvasSaveControl>(() => {
+    if (savedCanvas.state === "loading") return { status: "idle" };
+    if (savedCanvas.state === "error") {
+      return {
+        status: "error",
+        error: "The saved canvas could not be loaded. Click to try again.",
+        onSave: savedCanvas.retry,
+      };
+    }
+    return {
+      status: autosaveStatus,
+      error: "The canvas could not be saved. Click to try again.",
+      onSave: () => void save(),
+    };
+  }, [savedCanvas.state, savedCanvas.retry, autosaveStatus, save]);
+  useEffect(() => {
+    reportSave?.(saveControl);
+  }, [reportSave, saveControl]);
+  useEffect(() => () => reportSave?.(null), [reportSave]);
+
+  // Delete / Backspace remove the selection through Liveblocks' `onDelete` (one Storage
+  // mutation, so one undo step, synced to everyone). React Flow's own key deletion is off
+  // (`deleteKeyCode={null}`). Edges attached to a deleted node go with it.
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Delete" && event.key !== "Backspace") return;
+      if (event.defaultPrevented || isEditableTarget(event.target)) return;
+      // Keys pressed inside a dialog (e.g. the templates modal) belong to the dialog.
+      if (event.target instanceof Element && event.target.closest("[role=dialog]")) {
+        return;
+      }
+
+      const selectedNodes = flowNodes.filter((node) => node.selected);
+      const selectedEdges = flowEdges.filter((edge) => edge.selected);
+      if (selectedNodes.length === 0 && selectedEdges.length === 0) return;
+
+      const edgesToDelete = new Map(
+        [...selectedEdges, ...getConnectedEdges(selectedNodes, flowEdges)].map(
+          (edge) => [edge.id, edge]
+        )
+      );
+      event.preventDefault();
+      onDelete({ nodes: selectedNodes, edges: [...edgesToDelete.values()] });
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [flowNodes, flowEdges, onDelete]);
 
   function handleDragOver(event: DragEvent<HTMLDivElement>) {
     if (!hasShapeDragPayload(event.dataTransfer)) return;
@@ -110,13 +222,32 @@ function CanvasFlow() {
     if (!payload) return;
     event.preventDefault();
 
-    // Center the new node on the drop point.
+    // `screenToFlowPosition` takes the pane's bounding rect, pan and zoom into account. The
+    // grab point is where the cursor sits inside the drag image (its center for the shape
+    // previews), so the node lands exactly under the image the user was dragging.
     const point = screenToFlowPosition({ x: event.clientX, y: event.clientY });
     const node = createCanvasNode(payload, {
-      x: point.x - payload.width / 2,
-      y: point.y - payload.height / 2,
+      x: point.x - payload.width * payload.grabX,
+      y: point.y - payload.height * payload.grabY,
     });
+
+    // A `fitView()` made while the canvas was empty (e.g. the Fit view button) stays queued in
+    // React Flow until the first node is measured, then zooms onto it. Drop it so the viewport
+    // stays where the user left it.
+    reactFlowStore.setState({ fitViewQueued: false, fitViewOptions: undefined });
     onNodesChange([{ type: "add", item: node }]);
+  }
+
+  // Broadcast in canvas coordinates so other users see the pointer over the same spot at
+  // any pan or zoom (`LiveCursors`).
+  function handleMouseMove(event: MouseEvent<HTMLDivElement>) {
+    updateMyPresence({
+      cursor: screenToFlowPosition({ x: event.clientX, y: event.clientY }),
+    });
+  }
+
+  function handleMouseLeave() {
+    updateMyPresence({ cursor: null });
   }
 
   // Replaces everything on the canvas with the template as one undo step (the modal tells the
@@ -150,8 +281,11 @@ function CanvasFlow() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onDelete={onDelete}
+        deleteKeyCode={null}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
         connectionMode={ConnectionMode.Loose}
         colorMode="dark"
         fitView={shouldFitView}
@@ -165,7 +299,9 @@ function CanvasFlow() {
           bgColor="var(--bg-base)"
           color="var(--border-subtle)"
         />
+        <LiveCursors />
       </ReactFlow>
+      <PresenceAvatars />
       <ShapePanel />
       <CanvasControls fitViewOptions={FIT_VIEW_OPTIONS} />
       {templates && (

@@ -8,8 +8,13 @@ import {
 
 export type ShapeSize = { width: number; height: number };
 
+// Where the cursor sits inside the drag image, as a fraction of its width / height.
+export type GrabPoint = { grabX: number; grabY: number };
+
+const CENTER_GRAB: GrabPoint = { grabX: 0.5, grabY: 0.5 };
+
 // What the shape panel puts on the drag and the canvas reads back on drop.
-export type ShapeDragPayload = { shape: NodeShape } & ShapeSize;
+export type ShapeDragPayload = { shape: NodeShape } & ShapeSize & GrabPoint;
 
 // Custom type so the canvas ignores unrelated drags (files, text, links).
 export const SHAPE_DRAG_TYPE = "application/x-ghost-shape";
@@ -27,8 +32,13 @@ export const DEFAULT_SHAPE_SIZES: Record<NodeShape, ShapeSize> = {
 export function writeShapeDragPayload(
   dataTransfer: DataTransfer,
   shape: NodeShape,
+  grab: GrabPoint = CENTER_GRAB,
 ) {
-  const payload: ShapeDragPayload = { shape, ...DEFAULT_SHAPE_SIZES[shape] };
+  const payload: ShapeDragPayload = {
+    shape,
+    ...DEFAULT_SHAPE_SIZES[shape],
+    ...grab,
+  };
   dataTransfer.setData(SHAPE_DRAG_TYPE, JSON.stringify(payload));
   dataTransfer.effectAllowed = "copy";
 }
@@ -49,7 +59,7 @@ export function readShapeDragPayload(
   try {
     const value: unknown = JSON.parse(raw);
     if (typeof value !== "object" || value === null) return null;
-    const { shape, width, height } = value as Record<string, unknown>;
+    const { shape, width, height, grabX, grabY } = value as Record<string, unknown>;
     if (
       !NODE_SHAPES.includes(shape as NodeShape) ||
       !isPositive(width) ||
@@ -57,7 +67,13 @@ export function readShapeDragPayload(
     ) {
       return null;
     }
-    return { shape: shape as NodeShape, width, height };
+    return {
+      shape: shape as NodeShape,
+      width,
+      height,
+      grabX: isFraction(grabX) ? grabX : CENTER_GRAB.grabX,
+      grabY: isFraction(grabY) ? grabY : CENTER_GRAB.grabY,
+    };
   } catch {
     return null;
   }
@@ -65,6 +81,10 @@ export function readShapeDragPayload(
 
 function isPositive(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function isFraction(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
 }
 
 // Two nodes created in the same millisecond still get different IDs.
@@ -77,7 +97,7 @@ export function createNodeId(shape: NodeShape) {
 
 // `position` is the node's top-left corner in canvas coordinates.
 export function createCanvasNode(
-  { shape, width, height }: ShapeDragPayload,
+  { shape, width, height }: ShapeSize & { shape: NodeShape },
   position: { x: number; y: number },
 ): CanvasNode {
   return {

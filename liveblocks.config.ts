@@ -11,7 +11,7 @@ declare global {
       // Canvas coordinates; `null` while the pointer is outside the canvas.
       cursor: { x: number; y: number } | null;
       // True while this user is waiting on an AI response.
-      isThinking: boolean;
+      thinking: boolean;
     };
 
     // Set by `POST /api/liveblocks-auth` when the session token is issued.

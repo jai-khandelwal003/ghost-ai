@@ -16,7 +16,7 @@ export const ZOOM_ANIMATION_MS = 200;
 
 // Typing in a node / edge label (textarea / input) or any other text field must not
 // zoom the canvas or undo a Storage change.
-function isEditableTarget(target: EventTarget | null) {
+export function isEditableTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false;
   if (target.isContentEditable) return true;
   return (
