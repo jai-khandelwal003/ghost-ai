@@ -60,8 +60,10 @@ export function CanvasNodeView({ id, data, selected }: NodeProps<CanvasNode>) {
           id={position}
           type="source"
           position={position}
-          // Small white dots with a dark border, hidden until the node is hovered.
-          className="size-2.5! border-elevated! bg-copy-primary! opacity-0 transition-opacity group-hover:opacity-100"
+          // Small white dots with a dark border, hidden until the node is hovered. `z-10` keeps
+          // every side's handle above the resizer's widened line hit areas (`globals.css`),
+          // which run along the same edges while the node is selected.
+          className="z-10 size-2.5! border-elevated! bg-copy-primary! opacity-0 transition-opacity group-hover:opacity-100"
         />
       ))}
     </div>

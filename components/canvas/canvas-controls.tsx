@@ -21,7 +21,14 @@ interface CanvasControlsProps {
 // Floating pill at the bottom left of the canvas: zoom (React Flow viewport) and
 // undo / redo (Liveblocks Storage history).
 export function CanvasControls({ fitViewOptions }: CanvasControlsProps) {
-  const { zoomIn, zoomOut, fitView } = useReactFlow<CanvasNode, CanvasEdge>();
+  const { zoomIn, zoomOut, fitView, getNodes } = useReactFlow<CanvasNode, CanvasEdge>();
+
+  // On an empty canvas React Flow would keep the fit queued and zoom onto the first node
+  // dropped later, so there is nothing to fit.
+  function handleFitView() {
+    if (getNodes().length === 0) return;
+    void fitView({ ...fitViewOptions, duration: ZOOM_ANIMATION_MS });
+  }
   const undo = useUndo();
   const redo = useRedo();
   const canUndo = useCanUndo();
@@ -41,7 +48,7 @@ export function CanvasControls({ fitViewOptions }: CanvasControlsProps) {
       <ControlButton
         icon={Maximize}
         label="Fit view"
-        onClick={() => void fitView({ ...fitViewOptions, duration: ZOOM_ANIMATION_MS })}
+        onClick={handleFitView}
       />
       <ControlButton
         icon={ZoomIn}

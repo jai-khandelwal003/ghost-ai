@@ -11,6 +11,8 @@ interface EditorNavbarProps {
   title?: string;
   // Rendered in the right section, before the user button.
   actions?: React.ReactNode;
+  // Off in a workspace, where the canvas shows the user button next to the collaborators.
+  showUserButton?: boolean;
 }
 
 export function EditorNavbar({
@@ -18,6 +20,7 @@ export function EditorNavbar({
   onToggleSidebar,
   title,
   actions,
+  showUserButton = true,
 }: EditorNavbarProps) {
   const ToggleIcon = isSidebarOpen ? PanelLeftClose : PanelLeftOpen;
 
@@ -45,7 +48,7 @@ export function EditorNavbar({
       </div>
       <div className="flex shrink-0 items-center justify-end gap-2">
         {actions}
-        <UserButton />
+        {showUserButton && <UserButton />}
       </div>
     </header>
   );
