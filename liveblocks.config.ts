@@ -1,6 +1,7 @@
 import type { LiveblocksFlow } from "@liveblocks/react-flow";
 
 import type { CanvasEdge, CanvasNode } from "@/types/canvas";
+import type { AiChatMessage, AiStatusMessage } from "@/types/tasks";
 
 // Liveblocks types for the whole application
 // https://liveblocks.io/docs/api-reference/liveblocks-react#Typing-your-data
@@ -30,6 +31,11 @@ declare global {
     Storage: {
       flow?: LiveblocksFlow<CanvasNode, CanvasEdge>;
     };
+
+    // One type for every feed in the room: `ai-status-feed` messages are written by the
+    // background tasks (`lib/ai-presence.ts`), `ai-chat` messages by the AI sidebar. Readers
+    // validate each feed's messages (`parseAiStatusMessage` / `parseAiChatMessage`).
+    FeedMessageData: AiStatusMessage | AiChatMessage;
 
     // RoomEvent, ThreadMetadata and RoomInfo keep the Liveblocks defaults until the
     // canvas defines them.
