@@ -34,6 +34,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
+import { AiStatus } from "@/components/canvas/ai-status";
 import { CanvasControls } from "@/components/canvas/canvas-controls";
 import { CanvasEdgeView } from "@/components/canvas/canvas-edge";
 import { CanvasNodeView } from "@/components/canvas/canvas-node";
@@ -302,6 +303,7 @@ function CanvasFlow() {
         <LiveCursors />
       </ReactFlow>
       <PresenceAvatars />
+      <AiStatus />
       <ShapePanel />
       <CanvasControls fitViewOptions={FIT_VIEW_OPTIONS} />
       {templates && (

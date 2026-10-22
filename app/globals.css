@@ -25,6 +25,9 @@
   --accent-primary-dim: rgba(0, 200, 212, 0.12);
   --accent-ai: #6457f9;
   --accent-ai-text: #8b82ff;
+  /* The Green node pair's text color, reused for the AI chat (user bubbles, send button). */
+  --accent-green: #62c073;
+  --accent-green-foreground: var(--bg-base);
 
   --state-error: #ff4d4f;
   --state-success: #34d399;
@@ -86,6 +89,8 @@
   --color-accent-dim: var(--accent-primary-dim);
   --color-ai: var(--accent-ai);
   --color-ai-text: var(--accent-ai-text);
+  --color-accent-green: var(--accent-green);
+  --color-accent-green-foreground: var(--accent-green-foreground);
   --color-error: var(--state-error);
   --color-success: var(--state-success);
   --color-warning: var(--state-warning);

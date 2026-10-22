@@ -3,6 +3,7 @@
 import { useAuth } from "@clerk/nextjs";
 import { useOthers } from "@liveblocks/react/suspense";
 import { useStore, ViewportPortal } from "@xyflow/react";
+import { Loader2 } from "lucide-react";
 
 interface RemoteCursor {
   connectionId: number;
@@ -10,6 +11,8 @@ interface RemoteCursor {
   y: number;
   name: string;
   color: string;
+  // From presence; a missing value counts as false.
+  thinking: boolean;
 }
 
 // Other participants' pointers, drawn in canvas coordinates. Rendered as a child of
@@ -29,6 +32,7 @@ export function LiveCursors() {
           y: cursor.y,
           name: other.info.name,
           color: other.info.color,
+          thinking: other.presence.thinking === true,
         },
       ];
     }),
@@ -58,10 +62,11 @@ export function LiveCursors() {
             />
           </svg>
           <span
-            className="absolute top-4 left-3 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap shadow-md"
+            className="absolute top-4 left-3 flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap shadow-md"
             // Dark text: every cursor color is a light tint.
             style={{ backgroundColor: cursor.color, color: "var(--bg-base)" }}
           >
+            {cursor.thinking && <Loader2 className="h-3 w-3 shrink-0 animate-spin" />}
             {cursor.name}
           </span>
         </div>

@@ -19,6 +19,10 @@ export type ShapeDragPayload = { shape: NodeShape } & ShapeSize & GrabPoint;
 // Custom type so the canvas ignores unrelated drags (files, text, links).
 export const SHAPE_DRAG_TYPE = "application/x-ghost-shape";
 
+// Smallest size a node can be resized to; keeps every shape's label area usable.
+export const MIN_NODE_WIDTH = 60;
+export const MIN_NODE_HEIGHT = 40;
+
 export const DEFAULT_SHAPE_SIZES: Record<NodeShape, ShapeSize> = {
   rectangle: { width: 160, height: 80 },
   // Larger than the circle: the usable area inside a diamond is half its box.

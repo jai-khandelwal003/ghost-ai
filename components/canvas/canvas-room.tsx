@@ -30,23 +30,30 @@ const ERROR_MESSAGES = {
 
 type ConnectionError = keyof typeof ERROR_MESSAGES;
 
-interface CanvasRoomProps {
+interface WorkspaceRoomProps {
   // Project ID = Liveblocks room ID.
   roomId: string;
+  children: React.ReactNode;
 }
 
-export function CanvasRoom({ roomId }: CanvasRoomProps) {
+// One room connection for the whole workspace, so the canvas and the AI sidebar (rendered by
+// `EditorShell`, outside the canvas) read the same presence and feeds.
+export function WorkspaceRoom({ roomId, children }: WorkspaceRoomProps) {
+  return (
+    <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
+      <RoomProvider id={roomId} initialPresence={{ cursor: null, thinking: false }}>
+        {children}
+      </RoomProvider>
+    </LiveblocksProvider>
+  );
+}
+
+// Must be rendered inside `WorkspaceRoom`.
+export function CanvasRoom() {
   return (
     // Flush with the editor background: no border, radius or inset, so it reads as an infinite canvas.
     <div className="relative h-full w-full overflow-hidden bg-base">
-      <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
-        <RoomProvider
-          id={roomId}
-          initialPresence={{ cursor: null, thinking: false }}
-        >
-          <CanvasConnection />
-        </RoomProvider>
-      </LiveblocksProvider>
+      <CanvasConnection />
     </div>
   );
 }

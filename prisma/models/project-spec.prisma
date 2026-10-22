@@ -1,0 +1,11 @@
+// A generated Markdown spec. Metadata only: the Markdown itself lives in Vercel Blob.
+model ProjectSpec {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  // Vercel Blob URL of the Markdown file (`specs/{projectId}/{specId}.md`).
+  filePath  String
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}

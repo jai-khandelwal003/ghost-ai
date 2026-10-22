@@ -11,6 +11,7 @@ import {
 
 import { NodeColorToolbar } from "@/components/canvas/node-color-toolbar";
 import { NodeShapeView } from "@/components/canvas/node-shape";
+import { MIN_NODE_HEIGHT, MIN_NODE_WIDTH } from "@/lib/canvas-shapes";
 import { cn } from "@/lib/utils";
 import { NODE_COLORS, type CanvasNode } from "@/types/canvas";
 
@@ -22,10 +23,6 @@ const HANDLE_POSITIONS = [
   Position.Bottom,
   Position.Left,
 ] as const;
-
-// Smallest size a node can be resized to; keeps every shape's label area usable.
-const MIN_NODE_WIDTH = 60;
-const MIN_NODE_HEIGHT = 40;
 
 const LABEL_PLACEHOLDER = "Add label";
 

@@ -1,4 +1,4 @@
-import { CanvasRoom } from "@/components/canvas/canvas-room";
+import { CanvasRoom, WorkspaceRoom } from "@/components/canvas/canvas-room";
 import { AccessDenied } from "@/components/editor/access-denied";
 import { EditorShell } from "@/components/editor/editor-shell";
 import { getAccessibleProject, requireIdentity } from "@/lib/project-access";
@@ -16,8 +16,11 @@ export default async function WorkspacePage({
   const projects = await getSidebarProjects(identity);
 
   return (
-    <EditorShell {...projects} project={project}>
-      <CanvasRoom roomId={project.id} />
-    </EditorShell>
+    // The room wraps the whole shell: the AI sidebar reads presence and the AI status feed too.
+    <WorkspaceRoom roomId={project.id}>
+      <EditorShell {...projects} project={project}>
+        <CanvasRoom />
+      </EditorShell>
+    </WorkspaceRoom>
   );
 }

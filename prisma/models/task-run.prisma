@@ -1,0 +1,13 @@
+// A Trigger.dev run started by a user; used to check ownership before issuing a run-scoped token.
+model TaskRun {
+  id        String   @id @default(cuid())
+  // Trigger.dev run ID (`run_...`).
+  runId     String   @unique
+  projectId String
+  // Clerk user ID of the user who started the run.
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@index([runId])
+  @@index([userId, projectId])
+}
