@@ -18,9 +18,17 @@ function createPrismaClient(): PrismaClient {
   return new PrismaClient({ adapter });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
-
-// Reuse the client across hot reloads in development.
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+// Cached on `global` so hot reloads in development reuse the same client.
+function getPrismaClient(): PrismaClient {
+  globalForPrisma.prisma ??= createPrismaClient();
+  return globalForPrisma.prisma;
 }
+
+// Created on first use, so `next build` can import this module without DATABASE_URL.
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getPrismaClient();
+    const value = Reflect.get(client, prop);
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});
